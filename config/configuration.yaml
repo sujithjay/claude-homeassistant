@@ -26,6 +26,7 @@ lovelace:
 homekit:
   - name: "Meriden"
     port: 21063
+    pincode: "482-15-937"
     filter:
       include_entities:
         # Living room
