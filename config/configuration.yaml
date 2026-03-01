@@ -17,7 +17,7 @@ lovelace:
     rounded-home:
       mode: yaml
       filename: lovelace/dashboard.yaml
-      title: "Rounded Home"
+      title: "Meriden"
       icon: mdi:home-variant-outline
       show_in_sidebar: true
       require_admin: false
