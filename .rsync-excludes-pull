@@ -21,10 +21,9 @@ home-assistant_v2.db*
 .storage/application_credentials
 .storage/core.uuid
 
-# Custom add-ons and themes (managed separately)
+# Custom add-ons (managed separately)
 custom_components/
 custom_icons/
-themes/
 
 # Runtime/cache directories
 .cloud/
