@@ -28,6 +28,10 @@ input_boolean:
     name: "Light Auto Mode"
     initial: true
     icon: mdi:calendar-sync
+  nursery_audio_monitor_mode:
+    name: "Nursery Audio Monitor Mode"
+    initial: false
+    icon: mdi:microphone-outline
 
 # ── Template Sensors (used by dashboard) ────────────────────────────────────
 template:

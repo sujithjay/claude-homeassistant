@@ -195,6 +195,21 @@ views:
               border: {{ '1px solid rgba(239, 68, 68, 0.4)' if is_state('binary_sensor.nursery_baby_crying', 'on') else '0px solid transparent' }};
             }
 
+      # ── Audio Monitor Mode ────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: input_boolean.nursery_audio_monitor_mode
+        name: Audio Monitor Mode
+        icon: mdi:microphone-outline
+        styles: |
+          .bubble-icon-container {
+            background: rgba(236, 72, 153, ${state === 'on' ? '0.35' : '0.1'}) !important;
+          }
+          .bubble-icon { color: rgb(236, 72, 153) !important; }
+          .bubble-name { color: ${state === 'on' ? 'rgb(236, 72, 153)' : 'var(--primary-text-color)'}; }
+          .bubble-sub-button-1 .bubble-sub-button-background { display: none; }
+
       # ── Live View ─────────────────────────────────────────────────────────────
       # NOTE: Enable camera.nursery_snapshots_clear in Settings → Entities to show live feed
       - type: custom:bubble-card
@@ -514,19 +529,6 @@ views:
                 background: rgba(34, 197, 94, ${state === 'on' ? '0.35' : '0.1'}) !important;
               }
               .bubble-icon { color: rgb(34, 197, 94) !important; }
-
-      - type: custom:bubble-card
-        card_type: button
-        button_type: switch
-        entity: switch.nursery_privacy_mode
-        name: Privacy Mode (Camera Off)
-        icon: mdi:eye-off-outline
-        styles: |
-          .bubble-icon-container {
-            background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
-          }
-          .bubble-icon { color: rgb(239, 68, 68) !important; }
-          .bubble-name { color: ${state === 'on' ? 'rgb(239, 68, 68)' : 'var(--primary-text-color)'}; }
 
       # ── Environment ───────────────────────────────────────────────────────────
       - type: custom:bubble-card
