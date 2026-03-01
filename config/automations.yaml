@@ -66,3 +66,45 @@
     - service: input_boolean.turn_off
       entity_id: input_boolean.light_auto_mode
   mode: single
+
+# ── Baby Cry Alert ─────────────────────────────────────────────────────────────
+# Sends a rich iOS notification with a camera snapshot when the baby cry sensor
+# triggers between 7 PM and 10 PM. A 5-second delay filters out brief triggers.
+# NOTE: Enable camera.nursery_snapshots_clear in HA entity registry for images.
+- id: nursery_baby_cry_alert
+  alias: Nursery Baby Cry Alert
+  description: >
+    Sends a critical iOS push notification with a Reolink camera snapshot when
+    baby crying is detected between 7 PM and 10 PM. Uses a 5-second debounce
+    to filter momentary triggers. Notification includes an action button to
+    open the Nursery dashboard view.
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.nursery_baby_crying
+      to: "on"
+      for:
+        seconds: 5
+  condition:
+    - condition: time
+      after: "19:00:00"
+      before: "22:00:00"
+  action:
+    - service: notify.mobile_app_sujis_iphone
+      data:
+        title: "Baby is crying"
+        message: "Detected in the nursery"
+        data:
+          push:
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0
+          entity_id: camera.nursery_snapshots_clear
+          attachment:
+            url: /api/camera_proxy/camera.nursery_snapshots_clear
+            content_type: image/jpeg
+          actions:
+            - action: URI
+              title: "Open Nursery"
+              uri: /rounded-home/nursery
+  mode: single
