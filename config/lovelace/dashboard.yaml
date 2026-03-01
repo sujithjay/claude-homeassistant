@@ -116,12 +116,21 @@ views:
     icon: mdi:baby-carriage
     type: masonry
     cards:
-      # ── Greeting ─────────────────────────────────────────────────────────────
+      # ── Title (dynamic status) ────────────────────────────────────────────────
       - type: custom:mushroom-title-card
         title: Nursery
-        subtitle: Baby Monitor & Controls
+        subtitle: >
+          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}
+            Baby is crying
+          {% elif is_state('binary_sensor.nursery_person', 'on') %}
+            Someone in the room
+          {% elif is_state('binary_sensor.nursery_motion', 'on') %}
+            Motion detected
+          {% else %}
+            All quiet
+          {% endif %}
 
-      # ── Alert chips (dynamic colors) ─────────────────────────────────────────
+      # ── Status chips ──────────────────────────────────────────────────────────
       - type: custom:mushroom-chips-card
         chips:
           - type: template
@@ -151,12 +160,26 @@ views:
               {{ 'green' if is_state('binary_sensor.nursery_pet', 'on') else 'grey' }}
             content: >
               {{ 'Pet' if is_state('binary_sensor.nursery_pet', 'on') else '' }}
+          - type: spacer
+          - type: template
+            entity: sensor.nursery_day_night_state
+            icon: >
+              {{ 'mdi:weather-night' if is_state('sensor.nursery_day_night_state', 'black_white') else 'mdi:weather-sunny' }}
+            icon_color: >
+              {{ 'indigo' if is_state('sensor.nursery_day_night_state', 'black_white') else 'yellow' }}
+            content: >
+              {{ 'Night IR' if is_state('sensor.nursery_day_night_state', 'black_white') else 'Day Color' }}
 
       # ── Baby alert card (tinted background when crying) ───────────────────────
       - type: custom:mushroom-template-card
         primary: >
           {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}Baby is crying!{% else %}All quiet{% endif %}
-        secondary: Baby monitor status
+        secondary: >
+          {% set a = namespace(l=[]) %}
+          {% if is_state('binary_sensor.nursery_motion', 'on') %}{% set a.l = a.l + ['motion'] %}{% endif %}
+          {% if is_state('binary_sensor.nursery_person', 'on') %}{% set a.l = a.l + ['person'] %}{% endif %}
+          {% if is_state('binary_sensor.nursery_pet', 'on') %}{% set a.l = a.l + ['pet'] %}{% endif %}
+          {{ a.l | join(' · ') | title + ' detected' if a.l else 'No activity' }}
         icon: >
           {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}mdi:account-voice{% else %}mdi:sleep{% endif %}
         icon_color: >
@@ -172,64 +195,190 @@ views:
               border: {{ '1px solid rgba(239, 68, 68, 0.4)' if is_state('binary_sensor.nursery_baby_crying', 'on') else '0px solid transparent' }};
             }
 
-      # ── Environment ───────────────────────────────────────────────────────────
+      # ── Live View ─────────────────────────────────────────────────────────────
+      # NOTE: Enable camera.nursery_snapshots_clear in Settings → Entities to show live feed
       - type: custom:bubble-card
         card_type: separator
-        name: Environment
-        icon: mdi:thermometer-lines
-
-      - type: horizontal-stack
-        cards:
-          - type: custom:mushroom-entity-card
-            entity: sensor.aqara_humidity_temperature
-            name: Temperature
-            icon: mdi:thermometer
-            icon_color: orange
-          - type: custom:mushroom-entity-card
-            entity: sensor.aqara_humidity_humidity
-            name: Humidity
-            icon: mdi:water-percent
-            icon_color: blue
-          - type: custom:mushroom-entity-card
-            entity: sensor.aqara_humidity_pressure
-            name: Pressure
-            icon: mdi:gauge
-            icon_color: indigo
-
-      - type: custom:mini-graph-card
-        entities:
-          - entity: sensor.aqara_humidity_temperature
-            name: Temperature
-            color: "#fb923c"
-          - entity: sensor.aqara_humidity_humidity
-            name: Humidity
-            color: "#60a5fa"
-            y_axis: secondary
-        name: Nursery Environment (24h)
-        hours_to_show: 24
-        points_per_hour: 4
-        line_width: 2
-        hour24: true
-        show:
-          icon: false
-          state: true
-          legend: true
-          extrema: true
-          fill: false
-
-      # ── Camera ────────────────────────────────────────────────────────────────
-      - type: custom:bubble-card
-        card_type: separator
-        name: Camera
+        name: Live View
         icon: mdi:cctv
 
-      - type: custom:mushroom-select-card
-        entity: select.nursery_day_night_mode
-        name: Day / Night Mode
-        icon: mdi:camera-iris
+      - type: picture-entity
+        entity: camera.nursery_snapshots_clear
+        camera_view: live
+        show_name: false
+        show_state: false
+        card_mod:
+          style: |
+            :host { border-radius: var(--ha-card-border-radius, 24px); overflow: hidden; }
+
+      # ── PTZ Controls ─────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Camera Pan & Tilt
+        icon: mdi:pan
 
       - type: horizontal-stack
         cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.nursery_ptz_pan_position
+            name: Pan
+            icon: mdi:pan-horizontal
+            icon_color: blue
+            secondary_info: none
+          - type: custom:mushroom-entity-card
+            entity: sensor.nursery_ptz_tilt_position
+            name: Tilt
+            icon: mdi:pan-vertical
+            icon_color: purple
+            secondary_info: none
+
+      # D-pad row 1 – UP
+      - type: horizontal-stack
+        cards:
+          - type: custom:button-card
+            color_type: blank-card
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_ptz_up
+            name: Up
+            icon: mdi:chevron-up
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_ptz_up
+            styles: |
+              .bubble-icon-container {
+                background: rgba(99, 102, 241, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(99, 102, 241) !important; }
+          - type: custom:button-card
+            color_type: blank-card
+
+      # D-pad row 2 – LEFT / STOP / RIGHT
+      - type: horizontal-stack
+        cards:
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_ptz_left
+            name: Left
+            icon: mdi:chevron-left
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_ptz_left
+            styles: |
+              .bubble-icon-container {
+                background: rgba(99, 102, 241, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(99, 102, 241) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_ptz_stop
+            name: Stop
+            icon: mdi:stop
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_ptz_stop
+            styles: |
+              .bubble-icon-container {
+                background: rgba(239, 68, 68, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(239, 68, 68) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_ptz_right
+            name: Right
+            icon: mdi:chevron-right
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_ptz_right
+            styles: |
+              .bubble-icon-container {
+                background: rgba(99, 102, 241, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(99, 102, 241) !important; }
+
+      # D-pad row 3 – DOWN
+      - type: horizontal-stack
+        cards:
+          - type: custom:button-card
+            color_type: blank-card
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_ptz_down
+            name: Down
+            icon: mdi:chevron-down
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_ptz_down
+            styles: |
+              .bubble-icon-container {
+                background: rgba(99, 102, 241, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(99, 102, 241) !important; }
+          - type: custom:button-card
+            color_type: blank-card
+
+      # Guard position
+      - type: horizontal-stack
+        cards:
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_guard_go_to
+            name: Go to Guard Pos
+            icon: mdi:shield-home-outline
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_guard_go_to
+            styles: |
+              .bubble-icon-container {
+                background: rgba(34, 197, 94, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(34, 197, 94) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            entity: button.nursery_guard_set_current_position
+            name: Set Guard Here
+            icon: mdi:shield-star-outline
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.nursery_guard_set_current_position
+            styles: |
+              .bubble-icon-container {
+                background: rgba(34, 197, 94, 0.15) !important;
+              }
+              .bubble-icon { color: rgb(34, 197, 94) !important; }
+
+      - type: custom:mushroom-number-card
+        entity: number.nursery_guard_return_time
+        name: Auto Return Delay
+        icon: mdi:timer-outline
+        display_mode: slider
+
+      # ── Detection & Sensitivity ───────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Detection & Sensitivity
+        icon: mdi:eye
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-select-card
+            entity: select.nursery_day_night_mode
+            name: Day / Night Mode
+            icon: mdi:camera-iris
           - type: custom:bubble-card
             card_type: button
             button_type: switch
@@ -241,17 +390,36 @@ views:
                 background: rgba(139, 92, 246, ${state === 'on' ? '0.35' : '0.1'}) !important;
               }
               .bubble-icon { color: rgb(139, 92, 246) !important; }
-          - type: custom:bubble-card
-            card_type: button
-            button_type: switch
-            entity: switch.nursery_privacy_mode
-            name: Privacy
-            icon: mdi:eye-off-outline
-            styles: |
-              .bubble-icon-container {
-                background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
-              }
-              .bubble-icon { color: rgb(239, 68, 68) !important; }
+
+      - type: custom:mushroom-number-card
+        entity: number.nursery_baby_cry_sensitivity
+        name: Baby Cry Sensitivity
+        icon: mdi:baby-face-outline
+        display_mode: slider
+
+      - type: custom:mushroom-number-card
+        entity: number.nursery_motion_sensitivity
+        name: Motion Sensitivity
+        icon: mdi:motion-sensor
+        display_mode: slider
+
+      - type: custom:mushroom-number-card
+        entity: number.nursery_ai_person_sensitivity
+        name: Person Detection Sensitivity
+        icon: mdi:account
+        display_mode: slider
+
+      - type: custom:mushroom-number-card
+        entity: number.nursery_ai_pet_sensitivity
+        name: Pet Detection Sensitivity
+        icon: mdi:paw
+        display_mode: slider
+
+      # ── Recording ─────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Recording
+        icon: mdi:video
 
       - type: horizontal-stack
         cards:
@@ -284,11 +452,24 @@ views:
         icon: mdi:volume-high
         display_mode: slider
 
-      # ── Alerts & Notifications ────────────────────────────────────────────────
+      # ── Alerts ────────────────────────────────────────────────────────────────
       - type: custom:bubble-card
         card_type: separator
-        name: Alerts & Notifications
+        name: Alerts
         icon: mdi:bell-ring
+
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: siren.nursery_siren
+        name: Sound Alarm Now
+        icon: mdi:alarm-light
+        styles: |
+          .bubble-icon-container {
+            background: rgba(239, 68, 68, ${state === 'on' ? '0.5' : '0.1'}) !important;
+          }
+          .bubble-icon { color: rgb(239, 68, 68) !important; }
+          .bubble-name { color: ${state === 'on' ? 'rgb(239, 68, 68)' : 'var(--primary-text-color)'}; }
 
       - type: horizontal-stack
         cards:
@@ -340,11 +521,63 @@ views:
               }
               .bubble-icon { color: rgb(34, 197, 94) !important; }
 
-      # ── Status LED ────────────────────────────────────────────────────────────
-      - type: custom:mushroom-light-card
-        entity: light.nursery_status_led
-        name: Status LED
-        icon: mdi:led-outline
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.nursery_privacy_mode
+        name: Privacy Mode (Camera Off)
+        icon: mdi:eye-off-outline
+        styles: |
+          .bubble-icon-container {
+            background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
+          }
+          .bubble-icon { color: rgb(239, 68, 68) !important; }
+          .bubble-name { color: ${state === 'on' ? 'rgb(239, 68, 68)' : 'var(--primary-text-color)'}; }
+
+      # ── Environment ───────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Environment
+        icon: mdi:thermometer-lines
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.aqara_humidity_temperature
+            name: Temperature
+            icon: mdi:thermometer
+            icon_color: orange
+          - type: custom:mushroom-entity-card
+            entity: sensor.aqara_humidity_humidity
+            name: Humidity
+            icon: mdi:water-percent
+            icon_color: blue
+          - type: custom:mushroom-entity-card
+            entity: sensor.aqara_humidity_pressure
+            name: Pressure
+            icon: mdi:gauge
+            icon_color: indigo
+
+      - type: custom:mini-graph-card
+        entities:
+          - entity: sensor.aqara_humidity_temperature
+            name: Temperature
+            color: "#fb923c"
+          - entity: sensor.aqara_humidity_humidity
+            name: Humidity
+            color: "#60a5fa"
+            y_axis: secondary
+        name: Nursery Environment (24h)
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        hour24: true
+        show:
+          icon: false
+          state: true
+          legend: true
+          extrema: true
+          fill: false
 
       # ── Navigation ────────────────────────────────────────────────────────────
       - type: custom:bubble-card
