@@ -81,7 +81,7 @@ views:
 
       - type: custom:bubble-card
         card_type: media-player
-        entity: media_player.lg_webos_tv_oled65c3pua
+        entity: media_player.tv
         name: LG TV (65" C3)
         icon: mdi:television
         show_state: true
