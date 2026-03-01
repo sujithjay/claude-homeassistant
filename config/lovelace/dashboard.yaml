@@ -204,7 +204,7 @@ views:
 
       - type: picture-entity
         entity: camera.nursery_snapshots_clear
-        camera_view: live
+        camera_view: auto
         show_name: false
         show_state: false
         card_mod:
@@ -232,8 +232,10 @@ views:
             icon_color: purple
             secondary_info: none
 
-      # D-pad row 1 – UP
-      - type: horizontal-stack
+      # D-pad grid (3×3, equal-width cells)
+      - type: grid
+        columns: 3
+        square: false
         cards:
           - type: custom:button-card
             color_type: blank-card
@@ -254,10 +256,6 @@ views:
               .bubble-icon { color: rgb(99, 102, 241) !important; }
           - type: custom:button-card
             color_type: blank-card
-
-      # D-pad row 2 – LEFT / STOP / RIGHT
-      - type: horizontal-stack
-        cards:
           - type: custom:bubble-card
             card_type: button
             entity: button.nursery_ptz_left
@@ -303,10 +301,6 @@ views:
                 background: rgba(99, 102, 241, 0.15) !important;
               }
               .bubble-icon { color: rgb(99, 102, 241) !important; }
-
-      # D-pad row 3 – DOWN
-      - type: horizontal-stack
-        cards:
           - type: custom:button-card
             color_type: blank-card
           - type: custom:bubble-card
