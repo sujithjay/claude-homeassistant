@@ -20,7 +20,7 @@ views:
         entity: weather.forecast_home
         number_of_forecasts: 5
 
-      # ── Quick-glance chips ────────────────────────────────────────────────────
+      # ── Quick-glance chips (dynamic colors) ──────────────────────────────────
       - type: custom:mushroom-chips-card
         chips:
           - type: weather
@@ -28,14 +28,20 @@ views:
             show_temperature: true
             show_conditions: true
           - type: spacer
-          - type: entity
+          - type: template
             entity: sensor.aqara_humidity_temperature
             icon: mdi:thermometer
-            content_info: state
-          - type: entity
+            icon_color: >
+              {% set t = states('sensor.aqara_humidity_temperature') | float(0) %}
+              {% if t > 75 %}red{% elif t > 65 %}orange{% else %}light-blue{% endif %}
+            content: "{{ states('sensor.aqara_humidity_temperature') | round(1) }}°"
+          - type: template
             entity: sensor.aqara_humidity_humidity
             icon: mdi:water-percent
-            content_info: state
+            icon_color: >
+              {% set h = states('sensor.aqara_humidity_humidity') | float(0) %}
+              {% if h > 60 %}blue{% elif h > 40 %}teal{% else %}amber{% endif %}
+            content: "{{ states('sensor.aqara_humidity_humidity') | round(0) | int }}%"
 
       # ── Presence ──────────────────────────────────────────────────────────────
       - type: custom:mushroom-person-card
@@ -59,33 +65,48 @@ views:
             icon_color: orange
             secondary_info: none
 
-      # ── Media players ─────────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Media
-        subtitle: ""
+      # ── Media ─────────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Media
+        icon: mdi:television-play
 
-      - type: custom:mushroom-media-player-card
+      - type: custom:bubble-card
+        card_type: media-player
         entity: media_player.family_room_display
         name: Family Room Display
         icon: mdi:cast
-        use_media_info: true
-        media_controls:
-          - play_pause_stop
-          - volume
-        layout: horizontal
-        fill_container: false
+        show_state: true
+        card_layout: large
 
-      - type: custom:mushroom-media-player-card
+      - type: custom:bubble-card
+        card_type: media-player
         entity: media_player.lg_webos_tv_oled65c3pua
         name: LG TV (65" C3)
         icon: mdi:television
-        use_media_info: true
-        media_controls:
-          - on_off
-          - play_pause_stop
-          - volume
-        layout: horizontal
-        fill_container: false
+        show_state: true
+        card_layout: large
+
+      # ── Navigation ────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: horizontal-buttons-stack
+        auto_order: true
+        1_name: Home
+        1_icon: mdi:home-variant
+        1_link: /rounded-home/home
+        1_entity: person.jay
+        2_name: Nursery
+        2_icon: mdi:baby-carriage
+        2_link: /rounded-home/nursery
+        2_entity: binary_sensor.nursery_baby_crying
+        2_pir_sensor: binary_sensor.nursery_motion
+        3_name: Energy
+        3_icon: mdi:lightning-bolt
+        3_link: /rounded-home/energy
+        3_entity: switch.light_switch
+        4_name: System
+        4_icon: mdi:cog-outline
+        4_link: /rounded-home/system
 
   ##############################################################################
   # VIEW 2: NURSERY
@@ -95,12 +116,12 @@ views:
     icon: mdi:baby-carriage
     type: masonry
     cards:
-      # ── Section title ─────────────────────────────────────────────────────────
+      # ── Greeting ─────────────────────────────────────────────────────────────
       - type: custom:mushroom-title-card
         title: Nursery
         subtitle: Baby Monitor & Controls
 
-      # ── Alert status chips ────────────────────────────────────────────────────
+      # ── Alert chips (dynamic colors) ─────────────────────────────────────────
       - type: custom:mushroom-chips-card
         chips:
           - type: template
@@ -108,49 +129,54 @@ views:
             icon_color: >
               {{ 'red' if is_state('binary_sensor.nursery_baby_crying', 'on') else 'grey' }}
             content: >
-              {{ 'Baby Crying!' if is_state('binary_sensor.nursery_baby_crying', 'on') else 'Quiet' }}
-          - type: entity
+              {{ 'Crying!' if is_state('binary_sensor.nursery_baby_crying', 'on') else 'Quiet' }}
+          - type: template
             entity: binary_sensor.nursery_motion
             icon: mdi:motion-sensor
-          - type: entity
+            icon_color: >
+              {{ 'amber' if is_state('binary_sensor.nursery_motion', 'on') else 'grey' }}
+            content: >
+              {{ 'Motion' if is_state('binary_sensor.nursery_motion', 'on') else '' }}
+          - type: template
             entity: binary_sensor.nursery_person
             icon: mdi:account
-          - type: entity
+            icon_color: >
+              {{ 'deep-purple' if is_state('binary_sensor.nursery_person', 'on') else 'grey' }}
+            content: >
+              {{ 'Person' if is_state('binary_sensor.nursery_person', 'on') else '' }}
+          - type: template
             entity: binary_sensor.nursery_pet
             icon: mdi:paw
+            icon_color: >
+              {{ 'green' if is_state('binary_sensor.nursery_pet', 'on') else 'grey' }}
+            content: >
+              {{ 'Pet' if is_state('binary_sensor.nursery_pet', 'on') else '' }}
 
-      # ── Baby cry alert card ───────────────────────────────────────────────────
+      # ── Baby alert card (tinted background when crying) ───────────────────────
       - type: custom:mushroom-template-card
         primary: >
-          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}
-            Baby is crying!
-          {% else %}
-            All quiet
-          {% endif %}
-        secondary: "Baby monitor status"
+          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}Baby is crying!{% else %}All quiet{% endif %}
+        secondary: Baby monitor status
         icon: >
-          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}
-            mdi:account-voice
-          {% else %}
-            mdi:sleep
-          {% endif %}
+          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}mdi:account-voice{% else %}mdi:sleep{% endif %}
         icon_color: >
-          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}
-            red
-          {% else %}
-            green
-          {% endif %}
+          {% if is_state('binary_sensor.nursery_baby_crying', 'on') %}red{% else %}green{% endif %}
         badge_icon: >
-          {% if is_state('binary_sensor.nursery_motion', 'on') %}
-            mdi:motion-sensor
-          {% endif %}
-        badge_color: blue
+          {% if is_state('binary_sensor.nursery_motion', 'on') %}mdi:motion-sensor{% endif %}
+        badge_color: amber
         layout: horizontal
+        card_mod:
+          style: |
+            :host {
+              --ha-card-background: {{ 'rgba(239, 68, 68, 0.12)' if is_state('binary_sensor.nursery_baby_crying', 'on') else 'var(--ha-card-background)' }};
+              border: {{ '1px solid rgba(239, 68, 68, 0.4)' if is_state('binary_sensor.nursery_baby_crying', 'on') else '0px solid transparent' }};
+            }
 
       # ── Environment ───────────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Environment
-        subtitle: ""
+      - type: custom:bubble-card
+        card_type: separator
+        name: Environment
+        icon: mdi:thermometer-lines
 
       - type: horizontal-stack
         cards:
@@ -168,17 +194,16 @@ views:
             entity: sensor.aqara_humidity_pressure
             name: Pressure
             icon: mdi:gauge
-            icon_color: green
+            icon_color: indigo
 
-      # ── Temp & humidity mini chart ────────────────────────────────────────────
       - type: custom:mini-graph-card
         entities:
           - entity: sensor.aqara_humidity_temperature
             name: Temperature
-            color: "#ffb581"
+            color: "#fb923c"
           - entity: sensor.aqara_humidity_humidity
             name: Humidity
-            color: "#90bfff"
+            color: "#60a5fa"
             y_axis: secondary
         name: Nursery Environment (24h)
         hours_to_show: 24
@@ -192,10 +217,11 @@ views:
           extrema: true
           fill: false
 
-      # ── Camera controls ───────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Camera
-        subtitle: ""
+      # ── Camera ────────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Camera
+        icon: mdi:cctv
 
       - type: custom:mushroom-select-card
         entity: select.nursery_day_night_mode
@@ -204,73 +230,142 @@ views:
 
       - type: horizontal-stack
         cards:
-          - type: custom:mushroom-entity-card
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_infrared_lights_in_night_mode
             name: IR Lights
             icon: mdi:led-strip-variant
-            icon_color: purple
-          - type: custom:mushroom-entity-card
+            styles: |
+              .bubble-icon-container {
+                background: rgba(139, 92, 246, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(139, 92, 246) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_privacy_mode
             name: Privacy
             icon: mdi:eye-off-outline
-            icon_color: red
+            styles: |
+              .bubble-icon-container {
+                background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(239, 68, 68) !important; }
 
       - type: horizontal-stack
         cards:
-          - type: custom:mushroom-entity-card
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_record
             name: Record Video
-            icon: mdi:video-outline
-            icon_color: red
-          - type: custom:mushroom-entity-card
+            icon: mdi:video
+            styles: |
+              .bubble-icon-container {
+                background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(239, 68, 68) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_record_audio
             name: Record Audio
             icon: mdi:microphone
-            icon_color: pink
+            styles: |
+              .bubble-icon-container {
+                background: rgba(236, 72, 153, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(236, 72, 153) !important; }
 
-      # ── Camera volume ─────────────────────────────────────────────────────────
       - type: custom:mushroom-number-card
         entity: number.nursery_volume
         name: Camera Volume
         icon: mdi:volume-high
         display_mode: slider
 
-      # ── Notifications & alerts ────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Alerts & Notifications
-        subtitle: ""
+      # ── Alerts & Notifications ────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Alerts & Notifications
+        icon: mdi:bell-ring
 
       - type: horizontal-stack
         cards:
-          - type: custom:mushroom-entity-card
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_push_notifications
             name: Push Alerts
-            icon: mdi:bell-outline
-            icon_color: blue
-          - type: custom:mushroom-entity-card
+            icon: mdi:bell
+            styles: |
+              .bubble-icon-container {
+                background: rgba(59, 130, 246, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(59, 130, 246) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_email_on_event
             name: Email Alerts
-            icon: mdi:email-outline
-            icon_color: teal
+            icon: mdi:email
+            styles: |
+              .bubble-icon-container {
+                background: rgba(20, 184, 166, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(20, 184, 166) !important; }
 
       - type: horizontal-stack
         cards:
-          - type: custom:mushroom-entity-card
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_siren_on_event
             name: Siren on Event
             icon: mdi:alarm-bell
-            icon_color: red
-          - type: custom:mushroom-entity-card
+            styles: |
+              .bubble-icon-container {
+                background: rgba(239, 68, 68, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(239, 68, 68) !important; }
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
             entity: switch.nursery_guard_return
             name: Guard Return
             icon: mdi:shield-home
-            icon_color: green
+            styles: |
+              .bubble-icon-container {
+                background: rgba(34, 197, 94, ${state === 'on' ? '0.35' : '0.1'}) !important;
+              }
+              .bubble-icon { color: rgb(34, 197, 94) !important; }
 
       # ── Status LED ────────────────────────────────────────────────────────────
       - type: custom:mushroom-light-card
         entity: light.nursery_status_led
         name: Status LED
         icon: mdi:led-outline
+
+      # ── Navigation ────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: horizontal-buttons-stack
+        auto_order: true
+        1_name: Home
+        1_icon: mdi:home-variant
+        1_link: /rounded-home/home
+        1_entity: person.jay
+        2_name: Nursery
+        2_icon: mdi:baby-carriage
+        2_link: /rounded-home/nursery
+        2_entity: binary_sensor.nursery_baby_crying
+        2_pir_sensor: binary_sensor.nursery_motion
+        3_name: Energy
+        3_icon: mdi:lightning-bolt
+        3_link: /rounded-home/energy
+        3_entity: switch.light_switch
+        4_name: System
+        4_icon: mdi:cog-outline
+        4_link: /rounded-home/system
 
   ##############################################################################
   # VIEW 3: ENERGY
@@ -280,7 +375,6 @@ views:
     icon: mdi:lightning-bolt
     type: masonry
     cards:
-      # ── Section title ─────────────────────────────────────────────────────────
       - type: custom:mushroom-title-card
         title: Energy Monitor
         subtitle: Real-time power consumption
@@ -297,11 +391,11 @@ views:
         hour24: true
         color_thresholds:
           - value: 0
-            color: "#90bfff"
+            color: "#60a5fa"
           - value: 200
-            color: "#ffb581"
+            color: "#fb923c"
           - value: 800
-            color: "#ff918e"
+            color: "#f87171"
         show:
           icon: true
           state: true
@@ -310,6 +404,11 @@ views:
           legend: false
 
       # ── Live readings ─────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Live Readings
+        icon: mdi:chart-line
+
       - type: horizontal-stack
         cards:
           - type: custom:mushroom-entity-card
@@ -349,32 +448,63 @@ views:
             icon: mdi:angle-acute
             icon_color: purple
 
-      - type: horizontal-stack
-        cards:
-          - type: custom:mushroom-entity-card
-            entity: sensor.light_switch_ac_frequency
-            name: AC Frequency
-            icon: mdi:waveform
-            icon_color: indigo
-
-      # ── Switch control ────────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Control
-        subtitle: ""
-
       - type: custom:mushroom-entity-card
+        entity: sensor.light_switch_ac_frequency
+        name: AC Frequency
+        icon: mdi:waveform
+        icon_color: indigo
+        layout: horizontal
+
+      # ── Control ───────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Control
+        icon: mdi:toggle-switch
+
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
         entity: switch.light_switch
         name: Light Switch
         icon: mdi:toggle-switch-variant
-        icon_color: yellow
-        layout: horizontal
+        styles: |
+          .bubble-icon-container {
+            background: rgba(234, 179, 8, ${state === 'on' ? '0.35' : '0.1'}) !important;
+          }
+          .bubble-icon { color: rgb(234, 179, 8) !important; }
 
-      - type: custom:mushroom-entity-card
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
         entity: input_boolean.light_auto_mode
-        name: Auto Schedule Active
+        name: Auto Schedule
         icon: mdi:calendar-sync
-        icon_color: green
-        layout: horizontal
+        styles: |
+          .bubble-icon-container {
+            background: rgba(34, 197, 94, ${state === 'on' ? '0.35' : '0.1'}) !important;
+          }
+          .bubble-icon { color: rgb(34, 197, 94) !important; }
+
+      # ── Navigation ────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: horizontal-buttons-stack
+        auto_order: true
+        1_name: Home
+        1_icon: mdi:home-variant
+        1_link: /rounded-home/home
+        1_entity: person.jay
+        2_name: Nursery
+        2_icon: mdi:baby-carriage
+        2_link: /rounded-home/nursery
+        2_entity: binary_sensor.nursery_baby_crying
+        2_pir_sensor: binary_sensor.nursery_motion
+        3_name: Energy
+        3_icon: mdi:lightning-bolt
+        3_link: /rounded-home/energy
+        3_entity: switch.light_switch
+        4_name: System
+        4_icon: mdi:cog-outline
+        4_link: /rounded-home/system
 
   ##############################################################################
   # VIEW 4: SYSTEM
@@ -384,44 +514,55 @@ views:
     icon: mdi:cog-outline
     type: masonry
     cards:
-      # ── Section title ─────────────────────────────────────────────────────────
       - type: custom:mushroom-title-card
         title: System
         subtitle: Updates, backups & device status
 
-      # ── iPhone status ─────────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Jay's iPhone
-        subtitle: ""
-
-      - type: custom:mushroom-entity-card
-        entity: sensor.sujis_iphone_battery_level
-        name: Battery
+      # ── iPhone ────────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Jay's iPhone
         icon: mdi:cellphone
-        secondary_info: last_changed
+
+      - type: custom:mushroom-template-card
+        primary: "Jay's iPhone"
+        secondary: >
+          {{ states('sensor.sujis_iphone_battery_level') }}% · {{ states('sensor.sujis_iphone_battery_state') }}
+        icon: mdi:cellphone
+        icon_color: >
+          {% set b = states('sensor.sujis_iphone_battery_level') | int(0) %}
+          {% if b > 60 %}green{% elif b > 20 %}amber{% else %}red{% endif %}
+        badge_icon: >
+          {% if states('sensor.sujis_iphone_battery_state') == 'Charging' %}mdi:lightning-bolt{% endif %}
+        badge_color: green
         layout: horizontal
 
       - type: custom:mushroom-chips-card
         chips:
-          - type: entity
-            entity: sensor.sujis_iphone_battery_state
-            icon: mdi:battery-charging
-          - type: entity
+          - type: template
             entity: sensor.sujis_iphone_connection_type
             icon: mdi:wifi
-          - type: entity
+            icon_color: blue
+            content: "{{ states('sensor.sujis_iphone_connection_type') }}"
+          - type: template
             entity: sensor.sujis_iphone_ssid
             icon: mdi:access-point
+            icon_color: teal
+            content: "{{ states('sensor.sujis_iphone_ssid') }}"
 
-      # ── Backup status ─────────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Backup
-        subtitle: ""
-
-      - type: custom:mushroom-entity-card
-        entity: sensor.backup_backup_manager_state
-        name: Backup Manager
+      # ── Backup ────────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Backup
         icon: mdi:backup-restore
+
+      - type: custom:mushroom-template-card
+        primary: Backup Manager
+        secondary: "{{ states('sensor.backup_backup_manager_state') | title }}"
+        icon: mdi:backup-restore
+        icon_color: >
+          {% set s = states('sensor.backup_backup_manager_state') %}
+          {% if s == 'idle' %}green{% elif s == 'backing_up' %}blue{% else %}orange{% endif %}
         layout: horizontal
 
       - type: horizontal-stack
@@ -437,10 +578,11 @@ views:
             icon: mdi:clock-outline
             icon_color: blue
 
-      # ── Pending updates ───────────────────────────────────────────────────────
-      - type: custom:mushroom-title-card
-        title: Pending Updates
-        subtitle: ""
+      # ── Updates ───────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Pending Updates
+        icon: mdi:update
 
       - type: custom:auto-entities
         card:
@@ -457,7 +599,6 @@ views:
           method: friendly_name
         show_empty: false
 
-      # ── All updates (collapsed) ───────────────────────────────────────────────
       - type: custom:auto-entities
         card:
           type: entities
@@ -472,3 +613,24 @@ views:
         sort:
           method: friendly_name
         show_empty: false
+
+      # ── Navigation ────────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: horizontal-buttons-stack
+        auto_order: true
+        1_name: Home
+        1_icon: mdi:home-variant
+        1_link: /rounded-home/home
+        1_entity: person.jay
+        2_name: Nursery
+        2_icon: mdi:baby-carriage
+        2_link: /rounded-home/nursery
+        2_entity: binary_sensor.nursery_baby_crying
+        2_pir_sensor: binary_sensor.nursery_motion
+        3_name: Energy
+        3_icon: mdi:lightning-bolt
+        3_link: /rounded-home/energy
+        3_entity: switch.light_switch
+        4_name: System
+        4_icon: mdi:cog-outline
+        4_link: /rounded-home/system
