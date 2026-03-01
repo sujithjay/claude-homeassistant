@@ -222,3 +222,74 @@ vacuum.office_roborock
 - When creating automations, always ask the user for input if there are multiple choices for sensors or devices
 - Use the entity explorer tools to discover available entities before writing automations
 - Follow the naming convention when suggesting entity names in automations
+
+---
+
+## Hard-Won Learnings (2026.x)
+
+### HomeKit Bridge
+
+**Do not define `homekit:` in `configuration.yaml`.** YAML-imported bridges (`source: import`) have a persistent pairing failure: HA computes the mDNS setup hash using an internally generated `setup_id` that doesn't align with the stored pincode, causing iOS to reject every code attempt with "The setup code is incorrect." This cannot be fixed by restarting or clearing state files.
+
+**The only reliable setup path:**
+1. Keep `homekit:` out of `configuration.yaml` entirely.
+2. HA's `default_config:` auto-creates a "HASS Bridge" entry (`source: user`) on first start.
+3. That entry has no pincode in `.storage/core.config_entries` — inject one directly:
+   ```python
+   # ssh homeassistant
+   import json
+   with open('/config/.storage/core.config_entries', 'r') as f: data = json.load(f)
+   for e in data['data']['entries']:
+       if e['domain'] == 'homekit' and 'HASS Bridge' in e['title']:
+           e['data']['pincode'] = '234-56-819'  # choose any valid XXX-XX-XXX code
+   with open('/config/.storage/core.config_entries', 'w') as f: json.dump(data, f)
+   ```
+4. Delete the bridge's `.state`, `.aids`, `.iids` files from `.storage/`.
+5. Restart HA. Pair on iPhone using the injected code.
+
+**Entity filter** lives in the config entry `options.filter` (not YAML). Edit it directly in `.storage/core.config_entries` and restart HA to apply changes.
+
+**TV entities (`device_class: tv`) must NOT be in the bridge.** The bridge sets `exclude_accessory_mode: True` in `data` specifically to block TV entities. Even if added via `include_entities`, webostv's `assumed_state: True` (when the WebSocket session is not live) causes HomeKit to show "No Response" and commands don't reach the TV. Remove the TV from the bridge and control it via the HA dashboard instead.
+
+**Siri works for:** light switch, Nest Hub / media player (Cast), and future switches/lights added to the setup.
+
+**Diagnosing HomeKit issues via mDNS:**
+```bash
+dns-sd -B _hap._tcp local.                    # list all HAP accessories
+dns-sd -L "HASS Bridge C0726E" _hap._tcp local.  # inspect TXT record (sf=1 = unpaired)
+nc -zv homeassistant.local 21064              # verify port is reachable from this machine
+```
+State files are at `/config/.storage/homekit.<entry_id>.[state|aids|iids]`.
+
+---
+
+### LG WebOS TV (`webostv` integration)
+
+- HA discovers the LG C3 via **Google Cast** first (`media_player.lg_webos_tv_oled65c3pua`, platform: cast). This gives very limited control. Add the native **LG webOS Smart TV** integration separately for full control.
+- After adding webostv, the entity is `media_player.tv` (platform: webostv). Update all dashboard/automation references from the Cast entity to this one.
+- **TURN_ON is not supported** out of the box. The integration requires a MAC address in `entry.data["mac"]` to send a WoL packet. Get the MAC while the TV is on: `ssh homeassistant "arp -n <tv-ip>"`. Inject into the webostv config entry. Note: if the MAC has the locally-administered bit set (second hex digit is 2, 6, A, or E), it may be randomized and WoL will not work.
+- The TV's webOS WebSocket session drops frequently, leaving `assumed_state: True`. This is incompatible with HomeKit. Control the TV via HA UI/app instead of HomeKit/Siri.
+- Dashboard should reference `media_player.tv`, not `media_player.lg_webos_tv_oled65c3pua`.
+
+---
+
+### `.storage/` Direct Editing
+
+Several integration settings are only manageable by directly editing `.storage/core.config_entries` (not via YAML or UI). Pattern:
+1. SSH in, edit the JSON file with Python.
+2. Delete relevant `.storage/homekit.<entry_id>.*` state files if changing HomeKit identity.
+3. Restart HA — **do not just reload**, a full restart is required for config entry data changes.
+
+Always use a full HA restart (not component reload) when:
+- Adding/removing `homekit:` from `configuration.yaml`
+- Editing `.storage/core.config_entries` directly
+- Creating new `input_boolean` helpers in YAML (reload only updates existing ones)
+
+---
+
+### HA SSH / Logs
+
+- The SSH session (`ssh homeassistant`) connects to the **Advanced SSH addon container**, not the HA Core container. Direct `ps`, `journalctl`, and log file access are limited.
+- HA logs are NOT at `/config/home-assistant.log` in 2026.x. Use the HA UI log viewer or the `/api/error_log` REST endpoint (returns 404 in 2026.x — use the UI instead).
+- The HA REST API token is in `.env` as `HA_TOKEN`. Always use it for API calls rather than hardcoding.
+- `POST /api/services/homeassistant/restart` triggers a full HA restart. Allow ~60 seconds before checking if HA is back up.
