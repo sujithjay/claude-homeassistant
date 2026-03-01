@@ -67,37 +67,6 @@
       entity_id: input_boolean.light_auto_mode
   mode: single
 
-# ── Nursery Audio Monitor Mode ────────────────────────────────────────────────
-# Enables "audio-only" baby monitoring: covers the camera lens via privacy mode
-# while keeping the microphone and baby cry AI detection fully active.
-# Baby cry notifications continue to fire regardless of this mode.
-- id: nursery_audio_monitor_mode
-  alias: Nursery Audio Monitor Mode
-  description: >
-    Syncs the nursery_audio_monitor_mode helper with the camera's privacy mode
-    switch. When enabled, the lens is covered but audio/baby-cry detection
-    stays active. When disabled, the camera feed is restored.
-  trigger:
-    - platform: state
-      entity_id: input_boolean.nursery_audio_monitor_mode
-  action:
-    - choose:
-        - conditions:
-            - condition: state
-              entity_id: input_boolean.nursery_audio_monitor_mode
-              state: "on"
-          sequence:
-            - service: switch.turn_on
-              entity_id: switch.nursery_privacy_mode
-        - conditions:
-            - condition: state
-              entity_id: input_boolean.nursery_audio_monitor_mode
-              state: "off"
-          sequence:
-            - service: switch.turn_off
-              entity_id: switch.nursery_privacy_mode
-  mode: single
-
 # ── Baby Cry Alert ─────────────────────────────────────────────────────────────
 # Sends a rich iOS notification with a camera snapshot when the baby cry sensor
 # triggers between 7 PM and 10 PM. A 5-second delay filters out brief triggers.
