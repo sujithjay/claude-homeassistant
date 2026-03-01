@@ -1,51 +1,68 @@
-# Example Home Assistant Automations
-# These are example automations showcasing common patterns
-
-- id: 'example_motion_lights'
-  alias: 'Example: Motion Activated Lights'
-  description: 'Turn on lights when motion is detected'
+# ── Smart Light Schedule ──────────────────────────────────────────────────────
+# Turns light ON 1h before sunrise, OFF 1h after sunrise, and ON 30min before
+# sunset. The morning turn-off is skipped if you manually changed the light
+# after the automation turned it on (tracked via input_boolean.light_auto_mode).
+- id: light_schedule_sun_based
+  alias: Smart Light Schedule
+  description: >
+    Sun-based light schedule with manual override support. Turn-on events always
+    run. The morning turn-off is skipped if a manual change was detected since
+    the last auto turn-on.
   trigger:
-    - platform: state
-      entity_id: binary_sensor.living_room_motion
-      to: 'on'
-  condition:
-    - condition: state
-      entity_id: sun.sun
-      state: 'below_horizon'
-  action:
-    - service: light.turn_on
-      target:
-        entity_id: light.living_room_main
-      data:
-        brightness_pct: 75
-
-- id: 'example_schedule_lights'
-  alias: 'Example: Evening Light Schedule'
-  description: 'Turn on evening lights at sunset'
-  trigger:
+    - platform: sun
+      event: sunrise
+      offset: "-01:00:00"
+      id: morning_on
+    - platform: sun
+      event: sunrise
+      offset: "01:00:00"
+      id: morning_off
     - platform: sun
       event: sunset
       offset: "-00:30:00"
+      id: evening_on
   action:
-    - service: light.turn_on
-      target:
-        area_id: living_room
-      data:
-        brightness_pct: 50
+    - choose:
+        # ── Turn ON (always scheduled) ────────────────────────────────────────
+        - conditions:
+            - condition: trigger
+              id:
+                - morning_on
+                - evening_on
+          sequence:
+            - service: switch.turn_on
+              entity_id: switch.light_switch
+            - service: input_boolean.turn_on
+              entity_id: input_boolean.light_auto_mode
+        # ── Turn OFF (only if automation was last in control) ─────────────────
+        - conditions:
+            - condition: trigger
+              id: morning_off
+            - condition: state
+              entity_id: input_boolean.light_auto_mode
+              state: "on"
+          sequence:
+            - service: switch.turn_off
+              entity_id: switch.light_switch
+            - service: input_boolean.turn_off
+              entity_id: input_boolean.light_auto_mode
+  mode: single
 
-- id: 'example_device_notification'
-  alias: 'Example: Low Battery Notification'
-  description: 'Notify when device battery is low'
+# ── Manual Override Detector ──────────────────────────────────────────────────
+# Watches for human-triggered changes to the light switch and clears the
+# auto_mode flag so the next scheduled turn-off is skipped.
+- id: light_manual_override_detect
+  alias: Light Manual Override Detection
+  description: >
+    Clears light_auto_mode when the switch is changed by a person (not an
+    automation), so the morning auto-off will be skipped.
   trigger:
-    - platform: numeric_state
-      entity_id: sensor.phone_battery_level
-      below: 20
+    - platform: state
+      entity_id: switch.light_switch
   condition:
-    - condition: time
-      after: '09:00:00'
-      before: '22:00:00'
+    - condition: template
+      value_template: "{{ trigger.to_state.context.user_id is not none }}"
   action:
-    - service: notify.mobile_app
-      data:
-        title: "Low Battery Alert"
-        message: "Your phone battery is at {{ states('sensor.phone_battery_level') }}%"
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.light_auto_mode
+  mode: single
