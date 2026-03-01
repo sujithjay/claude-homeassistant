@@ -22,6 +22,35 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
 
+# ── HomeKit Bridge ───────────────────────────────────────────────────────────
+homekit:
+  - name: "Meriden"
+    port: 21063
+    filter:
+      include_entities:
+        # Living room
+        - switch.light_switch
+        # Nursery sensors
+        - binary_sensor.nursery_baby_crying
+        - binary_sensor.nursery_motion
+        - binary_sensor.nursery_person
+        - binary_sensor.nursery_pet
+        - light.nursery_status_led
+        # Bedroom environment
+        - sensor.aqara_humidity_temperature
+        - sensor.aqara_humidity_humidity
+        - sensor.aqara_humidity_pressure
+        # Media
+        - media_player.lg_webos_tv_oled65c3pua
+        - media_player.family_room_display
+    entity_config:
+      sensor.aqara_humidity_temperature:
+        linked_battery_sensor: sensor.aqara_humidity_battery
+      sensor.aqara_humidity_humidity:
+        linked_battery_sensor: sensor.aqara_humidity_battery
+      sensor.aqara_humidity_pressure:
+        linked_battery_sensor: sensor.aqara_humidity_battery
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 input_boolean:
   light_auto_mode:
