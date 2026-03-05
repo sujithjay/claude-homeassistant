@@ -764,19 +764,6 @@ views:
         badge_color: green
         layout: horizontal
 
-      - type: custom:mushroom-chips-card
-        chips:
-          - type: template
-            entity: sensor.sujis_iphone_connection_type
-            icon: mdi:wifi
-            icon_color: blue
-            content: "{{ states('sensor.sujis_iphone_connection_type') }}"
-          - type: template
-            entity: sensor.sujis_iphone_ssid
-            icon: mdi:access-point
-            icon_color: teal
-            content: "{{ states('sensor.sujis_iphone_ssid') }}"
-
       # ── Backup ────────────────────────────────────────────────────────────────
       - type: custom:bubble-card
         card_type: separator
@@ -804,42 +791,6 @@ views:
             name: Next Backup
             icon: mdi:clock-outline
             icon_color: blue
-
-      # ── Updates ───────────────────────────────────────────────────────────────
-      - type: custom:bubble-card
-        card_type: separator
-        name: Pending Updates
-        icon: mdi:update
-
-      - type: custom:auto-entities
-        card:
-          type: entities
-          show_header_toggle: false
-        filter:
-          include:
-            - domain: update
-              state: "on"
-              options:
-                type: custom:mushroom-update-card
-                collapsible_controls: true
-        sort:
-          method: friendly_name
-        show_empty: false
-
-      - type: custom:auto-entities
-        card:
-          type: entities
-          title: All Components
-          show_header_toggle: false
-        filter:
-          include:
-            - domain: update
-              state: "off"
-              options:
-                type: custom:mushroom-update-card
-        sort:
-          method: friendly_name
-        show_empty: false
 
       # ── Navigation ────────────────────────────────────────────────────────────
       - type: custom:bubble-card
