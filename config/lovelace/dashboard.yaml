@@ -792,6 +792,27 @@ views:
             icon: mdi:clock-outline
             icon_color: blue
 
+      # ── Automations ───────────────────────────────────────────────────────────
+      - type: custom:bubble-card
+        card_type: separator
+        name: Automations
+        icon: mdi:robot
+
+      - type: custom:auto-entities
+        card:
+          type: entities
+          show_header_toggle: false
+        filter:
+          include:
+            - domain: automation
+              options:
+                type: custom:mushroom-entity-card
+                secondary_info: last-triggered
+                layout: horizontal
+        sort:
+          method: friendly_name
+        show_empty: false
+
       # ── Navigation ────────────────────────────────────────────────────────────
       - type: custom:bubble-card
         card_type: horizontal-buttons-stack
