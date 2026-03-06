@@ -7,7 +7,8 @@
   description: >
     Sun-based light schedule with manual override support. Turn-on events always
     run. The morning turn-off is skipped if a manual change was detected since
-    the last auto turn-on.
+    the last auto turn-on. Evening turn-off at 10 PM is also skipped on
+    manual override.
   trigger:
     - platform: sun
       event: sunrise
@@ -21,6 +22,9 @@
       event: sunset
       offset: "-00:30:00"
       id: evening_on
+    - platform: time
+      at: "22:00:00"
+      id: evening_off
   action:
     - choose:
         # ── Turn ON (always scheduled) ────────────────────────────────────────
@@ -38,6 +42,18 @@
         - conditions:
             - condition: trigger
               id: morning_off
+            - condition: state
+              entity_id: input_boolean.light_auto_mode
+              state: "on"
+          sequence:
+            - service: switch.turn_off
+              entity_id: switch.light_switch
+            - service: input_boolean.turn_off
+              entity_id: input_boolean.light_auto_mode
+        # ── Evening OFF (only if automation was last in control) ────────────
+        - conditions:
+            - condition: trigger
+              id: evening_off
             - condition: state
               entity_id: input_boolean.light_auto_mode
               state: "on"
