@@ -452,6 +452,19 @@ views:
         name: Alerts
         icon: mdi:bell-ring
 
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: input_datetime.nursery_alert_start
+            name: Alert Start
+            icon: mdi:clock-start
+            icon_color: green
+          - type: custom:mushroom-entity-card
+            entity: input_datetime.nursery_alert_end
+            name: Alert End
+            icon: mdi:clock-end
+            icon_color: red
+
       - type: custom:bubble-card
         card_type: button
         button_type: switch

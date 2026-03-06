@@ -30,6 +30,18 @@ input_boolean:
     initial: true
     icon: mdi:calendar-sync
 
+input_datetime:
+  nursery_alert_start:
+    name: "Nursery Alert Start"
+    has_date: false
+    has_time: true
+    icon: mdi:clock-start
+  nursery_alert_end:
+    name: "Nursery Alert End"
+    has_date: false
+    has_time: true
+    icon: mdi:clock-end
+
 
 # ── Template Sensors (used by dashboard) ────────────────────────────────────
 template:
