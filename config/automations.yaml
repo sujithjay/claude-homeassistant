@@ -64,6 +64,44 @@
               entity_id: input_boolean.light_auto_mode
   mode: single
 
+# ── Light Schedule Recovery ──────────────────────────────────────────────────
+# If the switch goes unavailable (device offline) and recovers during a
+# scheduled-on window, turn it on. Covers connectivity drops that cause
+# the main schedule's service call to be silently dropped.
+- id: light_schedule_recovery
+  alias: Light Schedule Recovery
+  description: >
+    When the light switch recovers from unavailable during a scheduled-on
+    window (morning or evening), turn it on and set auto_mode. This catches
+    cases where the main schedule fired but the device was unreachable.
+  trigger:
+    - platform: state
+      entity_id: switch.light_switch
+      from: "unavailable"
+  condition:
+    - condition: or
+      conditions:
+        # Morning window: 1h before sunrise → 1h after sunrise
+        - condition: sun
+          after: sunrise
+          after_offset: "-01:00:00"
+          before: sunrise
+          before_offset: "01:00:00"
+        # Evening window: 30min before sunset → 10 PM
+        - condition: and
+          conditions:
+            - condition: sun
+              after: sunset
+              after_offset: "-00:30:00"
+            - condition: time
+              before: "22:00:00"
+  action:
+    - service: switch.turn_on
+      entity_id: switch.light_switch
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.light_auto_mode
+  mode: single
+
 # ── Manual Override Detector ──────────────────────────────────────────────────
 # Watches for human-triggered changes to the light switch and clears the
 # auto_mode flag so the next scheduled turn-off is skipped.
